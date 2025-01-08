@@ -54,6 +54,29 @@ const CYAN: image::Rgb<u8> = image::Rgb([0, 255, 255]);
 fn main() -> Result<(), ImageError>{
     let args: DitherArgs = argh::from_env();
     let path_in = args.input;
+    let path_out = args.output.unwrap_or("./image/out.png".to_string());
+
+    let img = image::open(path_in)?;
+
+    println!("Image ouverte: {}x{}", img.width(), img.height());
+    
+    let mut img_rgb = img.to_rgb8();
+
+    let mut img_out = image::ImageBuffer::new(img_rgb.width(), img_rgb.height());
+
+    let pixel = img_rgb.get_pixel(32, 52);
+    println!("Couleur du pixel (32, 52): {:?}", pixel);
+
+    for (x, y, pixel) in img_rgb.enumerate_pixels() {
+        if (x + y) % 2 == 0 {
+            img_out.put_pixel(x, y, WHITE);
+        } else {
+            img_out.put_pixel(x, y, *pixel);
+        }
+    }
+
+    img_out.save(path_out)?;
+
     Ok(())
 }
 
