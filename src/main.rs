@@ -1,5 +1,6 @@
 use argh::FromArgs;
 use image::{self, ImageError};
+use image::Pixel;
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 /// Convertit une image en monochrome ou vers une palette rÃ©duite de couleurs.
@@ -28,7 +29,16 @@ enum Mode {
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="seuil")]
 /// Rendu de lâimage par seuillage monochrome.
-struct OptsSeuil {}
+struct OptsSeuil {
+    
+    /// la couleur pour les pixels en dessous du seuil (optionnel, par défaut noir)
+    #[argh(option, default = "\"noir\".to_string()")]
+    couleur_bas: String,
+
+    /// la couleur pour les pixels au-dessus du seuil (optionnel, par défaut blanc)
+    #[argh(option, default = "\"blanc\".to_string()")]
+    couleur_haut: String,
+}
 
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
@@ -67,16 +77,47 @@ fn main() -> Result<(), ImageError>{
     let pixel = img_rgb.get_pixel(32, 52);
     println!("Couleur du pixel (32, 52): {:?}", pixel);
 
-    for (x, y, pixel) in img_rgb.enumerate_pixels() {
-        if (x + y) % 2 == 0 {
-            img_out.put_pixel(x, y, WHITE);
-        } else {
-            img_out.put_pixel(x, y, *pixel);
+    match args.mode {
+        Mode::Seuil(opts) => {
+            let couleur_bas = string_to_color(&opts.couleur_bas);
+            let couleur_haut = string_to_color(&opts.couleur_haut);
+            for (x, y, pixel) in img_rgb.enumerate_pixels() {
+                // if (x + y) % 2 == 0 {
+                //     img_out.put_pixel(x, y, WHITE);
+                // } else {
+                //     img_out.put_pixel(x, y, *pixel);
+                // }
+                if pixel.to_luma().0[0] > 127{
+                    img_out.put_pixel(x, y, couleur_haut);
+                } else {
+                    img_out.put_pixel(x, y, couleur_bas);
+                }
+            }
+        },
+        Mode::Palette(opts) => {
+            todo!();
         }
     }
+    
+    
 
     img_out.save(path_out)?;
 
     Ok(())
+}
+
+fn string_to_color(couleur: &str) -> image::Rgb<u8> {
+    match couleur {
+        "noir" => BLACK,
+        "blanc" => WHITE,
+        "gris" => GREY,
+        "rouge" => RED,
+        "vert" => GREEN,
+        "bleu" => BLUE,
+        "jaune" => YELLOW,
+        "cyan" => CYAN,
+        "magenta" => MAGENTA,
+        _ => BLACK
+    }
 }
 
