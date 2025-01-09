@@ -77,6 +77,8 @@ fn main() -> Result<(), ImageError>{
     let pixel = img_rgb.get_pixel(32, 52);
     println!("Couleur du pixel (32, 52): {:?}", pixel);
 
+    println!("Mode: {:?}", args.mode);
+
     match args.mode {
         Mode::Seuil(opts) => {
             let couleur_bas = string_to_color(&opts.couleur_bas);
@@ -95,8 +97,24 @@ fn main() -> Result<(), ImageError>{
             }
         },
         Mode::Palette(opts) => {
-            todo!();
+            let palette = vec![BLACK, WHITE, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA];
+            let mut nb_couleur = opts.n_couleurs;
+            if(nb_couleur == 0){
+                nb_couleur = palette.len();
+            }
+            let limited_palette: Vec<image::Rgb<u8>> = palette.into_iter().take(nb_couleur).collect();
+        
+            for (x, y, pixel) in img_rgb.enumerate_pixels() {
+                let closest_color = limited_palette.iter()
+                    .min_by(|&&a, &&b| {
+                        color_distance(*pixel, a).total_cmp(&color_distance(*pixel, b))
+                    })
+                    .unwrap();
+                img_out.put_pixel(x, y, *closest_color);
+            }
         }
+        
+        
     }
     
     
@@ -121,3 +139,9 @@ fn string_to_color(couleur: &str) -> image::Rgb<u8> {
     }
 }
 
+fn color_distance(color1: image::Rgb<u8>, color2: image::Rgb<u8>) -> f64 {
+    let r_diff = (color1[0] as i32 - color2[0] as i32).pow(2);
+    let g_diff = (color1[1] as i32 - color2[1] as i32).pow(2);
+    let b_diff = (color1[2] as i32 - color2[2] as i32).pow(2);
+    ((r_diff + g_diff + b_diff) as f64).sqrt()
+}

@@ -32,3 +32,18 @@ L'image est reconnaissable de loin malgré qu'on voit les carrés blanc et de pr
 Question 6)
 
 Pour obtenir la luminosité d'un pixel, on peut utiliser la méthode luminance() sur un pixel.
+
+Question 9)
+
+Pour calculer la distance entre deux couleurs, on peut utiliser la formule de la distance euclidienne.
+Formule:
+```sqrt((r1-r2)^2 + (g1-g2)^2 + (b1-b2)^2)```
+
+Question 11)
+
+otre application doit se comporter correctement si on donne une palette vide. Vous
+expliquerez dans votre README le choix que vous avez fait dans ce cas
+
+Si on donne une palette vide à notre application, on ne peut pas appliquer de dithering car on ne peut pas trouver la couleur la plus proche de chaque pixel. On peut donc afficher un message d'erreur à l'utilisateur pour lui dire que la palette est vide et qu'il doit la remplir pour pouvoir appliquer le dithering.
+
+ATTENTION LE TRUC AU DESSUS N'EST PAS FINI !
