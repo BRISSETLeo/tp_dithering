@@ -41,9 +41,6 @@ Formule:
 
 Question 11)
 
-otre application doit se comporter correctement si on donne une palette vide. Vous
-expliquerez dans votre README le choix que vous avez fait dans ce cas
+Si on donne une palette vide à notre application, on ne peut pas appliquer de dithering car on ne peut pas trouver la couleur la plus proche de chaque pixel. On peut donc afficher un message d'erreur à l'utilisateur pour lui dire que la palette est vide et qu'il doit la remplir pour pouvoir appliquer le dithering. Minimum 2 couleurs sont demandé.
 
-Si on donne une palette vide à notre application, on ne peut pas appliquer de dithering car on ne peut pas trouver la couleur la plus proche de chaque pixel. On peut donc afficher un message d'erreur à l'utilisateur pour lui dire que la palette est vide et qu'il doit la remplir pour pouvoir appliquer le dithering.
-
-ATTENTION LE TRUC AU DESSUS N'EST PAS FINI !
+ATTENTION LE TRUC AU DESSUS N'EST PAS FINI ! pour le moment le code renvoi pas d'erreur car ça marche pas

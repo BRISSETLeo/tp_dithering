@@ -98,12 +98,15 @@ fn main() -> Result<(), ImageError>{
         },
         Mode::Palette(opts) => {
             let palette = vec![BLACK, WHITE, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA];
-            let mut nb_couleur = opts.n_couleurs;
-            if(nb_couleur == 0){
-                nb_couleur = palette.len();
+            let nb_couleur = opts.n_couleurs;
+            if nb_couleur < 2 {
+                println!("Le nombre de couleurs doit être supérieur ou égal à 2");
+                return Ok(());
+            }else if nb_couleur > palette.len() {
+                println!("Le nombre de couleurs doit être inférieur ou égal à 8");
+                return Ok(());
             }
             let limited_palette: Vec<image::Rgb<u8>> = palette.into_iter().take(nb_couleur).collect();
-        
             for (x, y, pixel) in img_rgb.enumerate_pixels() {
                 let closest_color = limited_palette.iter()
                     .min_by(|&&a, &&b| {
