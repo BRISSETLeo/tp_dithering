@@ -44,3 +44,10 @@ Question 11)
 Si on donne une palette vide à notre application, on ne peut pas appliquer de dithering car on ne peut pas trouver la couleur la plus proche de chaque pixel. On peut donc afficher un message d'erreur à l'utilisateur pour lui dire que la palette est vide et qu'il doit la remplir pour pouvoir appliquer le dithering. Minimum 2 couleurs sont demandé.
 
 ATTENTION LE TRUC AU DESSUS N'EST PAS FINI ! pour le moment le code renvoi pas d'erreur car ça marche pas
+
+$$
+\begin{pmatrix}
+4 & 12 \\
+1 & 2
+\end{pmatrix}
+$$
