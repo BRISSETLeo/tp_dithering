@@ -1,6 +1,8 @@
 use argh::FromArgs;
 use image::{self, ImageError};
 use image::Pixel;
+use rand::Rng;
+
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 /// Convertit une image en monochrome ou vers une palette rÃ©duite de couleurs.
@@ -24,6 +26,7 @@ struct DitherArgs {
 enum Mode {
     Seuil(OptsSeuil),
     Palette(OptsPalette),
+    Tramage(OptsTramage)
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
@@ -49,6 +52,12 @@ struct OptsPalette {
     /// le nombre de couleurs Ã  utiliser, dans la liste [NOIR, BLANC, ROUGE, VERT, BLEU, JAUNE, CYAN, MAGENTA]
     #[argh(option)]
     n_couleurs: usize
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="tramage")]
+/// Rendu de lâimage par tramage
+struct OptsTramage {
 }
  
 const WHITE: image::Rgb<u8> = image::Rgb([255, 255, 255]);
@@ -114,6 +123,18 @@ fn main() -> Result<(), ImageError>{
                     })
                     .unwrap();
                 img_out.put_pixel(x, y, *closest_color);
+            }
+        },
+        Mode::Tramage(opts) => {
+            let palette = vec![BLACK, WHITE];
+            for (x, y, pixel) in img_rgb.enumerate_pixels() {
+                let threshold: u8 = rand::random::<u8>();
+                let pixel_luma = pixel.to_luma().0[0];
+                if pixel_luma > threshold {
+                    img_out.put_pixel(x, y, WHITE);
+                } else {
+                    img_out.put_pixel(x, y, BLACK);
+                }
             }
         }
         
