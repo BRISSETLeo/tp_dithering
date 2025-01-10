@@ -1,5 +1,7 @@
 use argh::FromArgs;
 use image::{self, ImageError};
+use image::Rgb;
+
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 /// Convertit une image en monochrome ou vers une palette rÃ©duite de couleurs.
@@ -51,31 +53,58 @@ const YELLOW: image::Rgb<u8> = image::Rgb([255, 255, 0]);
 const MAGENTA: image::Rgb<u8> = image::Rgb([255, 0, 255]);
 const CYAN: image::Rgb<u8> = image::Rgb([0, 255, 255]);
 
-fn main() -> Result<(), ImageError>{
+
+fn distance_couleur(c1: Rgb<u8>, c2: Rgb<u8>) -> f64 {
+    let r_diff = c1[0] as f64 - c2[0] as f64;
+    let g_diff = c1[1] as f64 - c2[1] as f64;
+    let b_diff = c1[2] as f64 - c2[2] as f64;
+
+    (r_diff.powi(2) + g_diff.powi(2) + b_diff.powi(2)).sqrt()
+}
+
+fn appliquer_palette(
+    img: &image::RgbImage,
+    palette: &[Rgb<u8>],
+) -> image::RgbImage {
+    let mut img_out = image::ImageBuffer::new(img.width(), img.height());
+
+    for (x, y, pixel) in img.enumerate_pixels() {
+        let mut couleur_proche = palette[0];
+        let mut distance_min = f64::MAX;
+
+        // Trouver la couleur la plus proche dans la palette
+        for &couleur in palette {
+            let distance = distance_couleur(*pixel, couleur);
+            if distance < distance_min {
+                distance_min = distance;
+                couleur_proche = couleur;
+            }
+        }
+
+        img_out.put_pixel(x, y, couleur_proche);
+    }
+
+    img_out
+}
+
+fn main() -> Result<(), ImageError> {
     let args: DitherArgs = argh::from_env();
     let path_in = args.input;
     let path_out = args.output.unwrap_or("./image/out.png".to_string());
 
-    let img = image::open(path_in)?;
+    let img = image::open(path_in)?.to_rgb8();
 
-    println!("Image ouverte: {}x{}", img.width(), img.height());
-    
-    let mut img_rgb = img.to_rgb8();
-
-    let mut img_out = image::ImageBuffer::new(img_rgb.width(), img_rgb.height());
-
-    let pixel = img_rgb.get_pixel(32, 52);
-    println!("Couleur du pixel (32, 52): {:?}", pixel);
-
-    for (x, y, pixel) in img_rgb.enumerate_pixels() {
-        if (x + y) % 2 == 0 {
-            img_out.put_pixel(x, y, WHITE);
-        } else {
-            img_out.put_pixel(x, y, *pixel);
+    match args.mode {
+        Mode::Seuil(_) => {
+            println!("Mode seuil non implémenté");
+        }
+        Mode::Palette(opts) => {
+            let palette = vec![BLACK, WHITE, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA];
+            let palette_reduite = &palette[..opts.n_couleurs.min(palette.len())];
+            let img_out = appliquer_palette(&img, palette_reduite);
+            img_out.save(path_out)?;
         }
     }
-
-    img_out.save(path_out)?;
 
     Ok(())
 }
