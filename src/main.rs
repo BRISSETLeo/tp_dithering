@@ -2,7 +2,6 @@ use argh::FromArgs;
 use image::{self, ImageError};
 use image::Pixel;
 
-
 mod utils;
 mod bayer; 
 mod error_diffusion;
@@ -14,10 +13,10 @@ use crate::image::Rgb;
 use crate::image::Rgba;
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
-/// Convertit une image en monochrome ou vers une palette rÃ©duite de couleurs.
+/// Convertit une image en monochrome ou vers une palette réduite de couleurs.
 struct DitherArgs {
 
-    /// le fichier dâentrÃ©e
+    /// le fichier d’entrée
     #[argh(positional)]
     input: String,
 
@@ -25,7 +24,7 @@ struct DitherArgs {
     #[argh(positional)]
     output: Option<String>,
 
-    /// le mode dâopÃ©ration
+    /// le mode d’opération
     #[argh(subcommand)]
     mode: Mode
 }
@@ -44,7 +43,7 @@ enum Mode {
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="seuil")]
-/// Rendu de lâimage par seuillage monochrome.
+/// Rendu de l’image par seuillage monochrome.
 struct OptsSeuil {
     
     /// la couleur pour les pixels en dessous du seuil (optionnel, par défaut noir)
@@ -59,41 +58,41 @@ struct OptsSeuil {
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="palette")]
-/// Rendu de lâimage avec une palette contenant un nombre limitÃ© de couleurs
+/// Rendu de l’image avec une palette contenant un nombre limité de couleurs
 struct OptsPalette {
 
-    /// le nombre de couleurs Ã  utiliser, dans la liste [NOIR, BLANC, ROUGE, VERT, BLEU, JAUNE, CYAN, MAGENTA]
+    /// le nombre de couleurs à utiliser, dans la liste [NOIR, BLANC, ROUGE, VERT, BLEU, JAUNE, CYAN, MAGENTA]
     #[argh(option)]
     n_couleurs: usize
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="tramage")]
-/// Rendu de lâimage par tramage
+/// Rendu de l’image par tramage
 struct OptsTramage {
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="tramage-bayer")]
-/// Rendu de lâimage par tramage avec matrice de Bayer
+/// Rendu de l’image par tramage avec matrice de Bayer
 struct OptsTramageBayer {
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="diffusion-erreur")]
-/// Rendu de lâimage par diffusion dâerreur
+/// Rendu de l’image par diffusion d’erreur
 struct OptsDiffusionErreur {
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="diffusion-erreur-palette")]
-/// Rendu de lâimage par diffusion dâerreur avec palette
+/// Rendu de l’image par diffusion d’erreur avec palette
 struct OptsDiffusionErreurPalette {
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 #[argh(subcommand, name="diffusion-erreur-floyd")]
-/// Rendu de lâimage par diffusion dâerreur de Floyd-Steinberg
+/// Rendu de l’image par diffusion d’erreur de Floyd-Steinberg
 struct OptsDiffusionErreurPaletteFloyd {
 }
 
@@ -108,84 +107,7 @@ const YELLOW: image::Rgb<u8> = image::Rgb([255, 255, 0]);
 const MAGENTA: image::Rgb<u8> = image::Rgb([255, 0, 255]);
 const CYAN: image::Rgb<u8> = image::Rgb([0, 255, 255]);
 
-fn generate_bayer_matrix(order: usize) -> Vec<Vec<f64>> {
-    let mut matrix = vec![vec![0.0; order]; order];
-    matrix[0][0] = 0.0;
 
-    for n in 1..=(order as f64).log2() as usize {
-        let current_size = 2_usize.pow(n as u32);
-        let half_size = current_size / 2;
-
-        for i in 0..half_size {
-            for j in 0..half_size {
-                matrix[i][j] *= 4.0;
-                matrix[i][j + half_size] = matrix[i][j] + 2.0;
-                matrix[i + half_size][j] = matrix[i][j] + 3.0;
-                matrix[i + half_size][j + half_size] = matrix[i][j] + 1.0;
-            }
-        }
-    }
-
-    // Normalisation
-    matrix.iter_mut()
-        .flat_map(|row| row.iter_mut())
-        .for_each(|val| *val /= (order * order) as f64);
-
-    matrix
-}
-
-fn apply_bayer_dithering(img_rgb: &image::RgbImage) -> image::RgbImage {
-    let (width, height) = img_rgb.dimensions();
-    let mut img_out = image::ImageBuffer::new(width, height);
-    
-    // Générer une matrice de Bayer 8x8
-    let bayer_matrix = generate_bayer_matrix(8);
-    
-    for (x, y, pixel) in img_rgb.enumerate_pixels() {
-        let luma = pixel.to_luma().0[0] as f64 / 255.0;
-        let seuil = bayer_matrix[y as usize % 8][x as usize % 8];
-        
-        let output_pixel = if luma > seuil { WHITE } else { BLACK };
-        img_out.put_pixel(x, y, output_pixel);
-    }
-    
-    img_out
-}
-
-fn diffusion_erreur(img_rgb: &image::RgbImage, img_out: &mut image::RgbImage) -> image::RgbImage {
-    let mut img_rgb = img_rgb.clone();
-    let width = img_rgb.width();
-    let height = img_rgb.height();
-
-    for y in 0..height {
-        for x in 0..width {
-            let pixel = img_rgb.get_pixel(x, y);
-            let luma = pixel.to_luma().0[0] as f64 / 255.0;
-            let new_pixel = if luma > 0.5 { WHITE } else { BLACK };
-            img_out.put_pixel(x, y, new_pixel);
-
-            let error = luma - if luma > 0.5 { 1.0 } else { 0.0 };
-
-            if x + 1 < width {
-                let next_pixel = img_rgb.get_pixel(x + 1, y);
-                let next_luma = next_pixel.to_luma().0[0] as f64 / 255.0;
-                let new_luma = (next_luma + error * 0.5).clamp(0.0, 1.0);
-                let new_color = image::Luma([(new_luma * 255.0) as u8]);
-                img_rgb.put_pixel(x + 1, y, image::Rgb([new_color[0], new_color[0], new_color[0]]));
-            }
-
-            if y + 1 < height {
-                let next_pixel = img_rgb.get_pixel(x, y + 1);
-                let next_luma = next_pixel.to_luma().0[0] as f64 / 255.0;
-                let new_luma = (next_luma + error * 0.5).clamp(0.0, 1.0);
-                let new_color = image::Luma([(new_luma * 255.0) as u8]);
-                img_rgb.put_pixel(x, y + 1, image::Rgb([new_color[0], new_color[0], new_color[0]]));
-            }
-        }
-    }
-
-    return img_rgb
-}
 
 fn diffusion_erreur_palette(
     img_rgb: &image::RgbImage,
@@ -332,7 +254,7 @@ fn main() -> Result<(), ImageError>{
             }
         },
         Mode::Palette(opts) => {
-            let palette = vec![BLACK, WHITE, RED, BLUE, GREEN];
+            let palette = vec![BLACK, WHITE, RED, BLUE, GREEN, YELLOW, MAGENTA, CYAN];
             let nb_couleur = opts.n_couleurs;
             if nb_couleur < 2 {
                 return Err(image::ImageError::from(std::io::Error::new(

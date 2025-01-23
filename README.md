@@ -93,21 +93,28 @@ Chaque pixel est remplacé par la couleur la plus proche dans la palette. L’er
 ### Question 21)
 
 ```
-Usage: tp_dithering input [output] command [args]
+Usage: TP_dithering <input> [<output>] <command> [<args>]
 
 Convertit une image en monochrome ou vers une palette réduite de couleurs.
 
-Arguments positionnels :
-  input             le fichier d'entrée
+Positional Arguments:
+  input             le fichier d’entrée
   output            le fichier de sortie (optionnel)
 
-Options :
-  --help, help      afficher ce message d'aide
+Options:
+  --help, help      display usage information
 
-Commandes :
-  seuil             Convertit l'image en monochrome par seuillage.
-  palette           Convertit l'image en utilisant une palette de couleurs limitée.
-  tramage           Convertit l'image en utilisant une méthode de tramage.
+Commands:
+  seuil             Rendu de l’image par seuillage monochrome.
+  palette           Rendu de l’image avec une palette contenant un nombre limité
+                    de couleurs
+  tramage           Rendu de l’image par tramage
+  tramage-bayer     Rendu de l’image par tramage avec matrice de Bayer
+  diffusion-erreur  Rendu de l’image par diffusion d’erreur
+  diffusion-erreur-palette
+                    Rendu de l’image par diffusion d’erreur avec palette
+  diffusion-erreur-floyd
+                    Rendu de l’image par diffusion d’erreur de Floyd-Steinberg
 ```
 
 Commande utilisable : 
@@ -119,6 +126,14 @@ Commande utilisable :
 - cargo run -- ./image/iut.jpeg ./image/question10.png palette --n-couleurs 8
 
 - cargo run -- ./image/iut.jpeg ./image/question12.png tramage
+
+- cargo run -- ./image/iut.jpeg ./image/question13.png tramage-bayer
+
+- cargo run -- ./image/iut.jpeg ./image/question16.png diffusion-erreur
+
+- cargo run -- ./image/iut.jpeg ./image/question18.png diffusion-erreur-palette
+
+- cargo run -- ./image/iut.jpeg ./image/question19.png diffusion-erreur-floyd
 ```
 
 ### Question 22)
