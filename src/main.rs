@@ -77,7 +77,7 @@ fn main() -> Result<(), ImageError>{
 
     println!("Image ouverte: {}x{}", img.width(), img.height());
     
-    let mut img_rgb = img.to_rgb8();
+    let img_rgb = img.to_rgb8();
 
     let mut img_out = image::ImageBuffer::new(img_rgb.width(), img_rgb.height());
 
@@ -127,8 +127,7 @@ fn main() -> Result<(), ImageError>{
                 img_out.put_pixel(x, y, *closest_color);
             }
         },
-        Mode::Tramage(opts) => {
-            let palette = vec![BLACK, WHITE];
+        Mode::Tramage(_opts) => {
             for (x, y, pixel) in img_rgb.enumerate_pixels() {
                 let threshold: u8 = rand::random::<u8>();
                 let pixel_luma = pixel.to_luma().0[0];
