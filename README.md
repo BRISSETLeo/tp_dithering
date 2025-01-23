@@ -44,7 +44,7 @@ Formule:
 
 Si on donne une palette vide à notre application, on ne peut pas appliquer de dithering car on ne peut pas trouver la couleur la plus proche de chaque pixel. On peut donc afficher un message d'erreur à l'utilisateur pour lui dire que la palette est vide et qu'il doit la remplir pour pouvoir appliquer le dithering. Minimum 2 couleurs sont demandé.
 
-Question 13)
+### Question 13)
 
 Je n'ai mis que la premiere valeur de chaque carré de la matrice
 
@@ -56,7 +56,7 @@ B3= \frac{1}{64}.
 \end{pmatrix}
 $$
 
-Question 14)
+### Question 14)
 
 Pour représenter une matrice de Bayer, on peut utiliser :
 
