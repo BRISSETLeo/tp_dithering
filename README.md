@@ -75,9 +75,20 @@ Remplir les bloc avec des valeurs décalées (0, 2, 3, 1)
 Puis normaliser
 
 
+### Question 17) 
 
+Diffusion d’erreur pour une palette de couleurs : 
+Lorsque l’on utilise une palette de couleurs, chaque pixel de l’image d’origine peut être représenté par un vecteur de trois composantes (rouge, vert, bleu). Pour chaque pixel traité, l’erreur commise est calculée comme suit :
 
+On identifie la couleur la plus proche dans la palette (selon une métrique comme la distance Euclidienne dans l’espace RGB).
+L’erreur est un vecteur représentant la différence entre la couleur d’origine et la couleur choisie dans la palette :
+Erreur = Couleur d’origine − Couleur choisie
 
+Cette erreur est ensuite diffusée sur les pixels voisins, en fonction de leur position dans l’image. Par exemple, pour un pixel situé en bas à droite, l’erreur est diffusée sur les pixels situés en haut et à gauche.
+
+Chaque pixel est remplacé par la couleur la plus proche dans la palette. L’erreur est ajoutée à la couleur du pixel suivant, avant de calculer la couleur la plus proche dans la palette.
+
+### Question 18)
 
 ### Question 21)
 

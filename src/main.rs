@@ -2,6 +2,15 @@ use argh::FromArgs;
 use image::{self, ImageError};
 use image::Pixel;
 
+
+mod utils;
+mod bayer; 
+mod error_diffusion;
+
+use utils::*;
+use bayer::*;
+use error_diffusion::*;
+
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 /// Convertit une image en monochrome ou vers une palette rÃ©duite de couleurs.
 struct DitherArgs {
@@ -70,90 +79,6 @@ struct OptsTramageBayer {
 #[argh(subcommand, name="diffusion-erreur")]
 /// Rendu de lâimage par diffusion dâerreur
 struct OptsDiffusionErreur {
-}
- 
-const WHITE: image::Rgb<u8> = image::Rgb([255, 255, 255]);
-const GREY: image::Rgb<u8> = image::Rgb([127, 127, 127]);
-const BLACK: image::Rgb<u8> = image::Rgb([0, 0, 0]);
-const BLUE: image::Rgb<u8> = image::Rgb([0, 0, 255]);
-const RED: image::Rgb<u8> = image::Rgb([255, 0, 0]);
-const GREEN: image::Rgb<u8> = image::Rgb([0, 255, 0]);
-const YELLOW: image::Rgb<u8> = image::Rgb([255, 255, 0]);
-const MAGENTA: image::Rgb<u8> = image::Rgb([255, 0, 255]);
-const CYAN: image::Rgb<u8> = image::Rgb([0, 255, 255]);
-
-fn generate_bayer_matrix(order: usize) -> Vec<Vec<f64>> {
-    let mut matrix = vec![vec![0.0; order]; order];
-    matrix[0][0] = 0.0;
-
-    for n in 1..=(order as f64).log2() as usize {
-        let current_size = 2_usize.pow(n as u32);
-        let half_size = current_size / 2;
-
-        for i in 0..half_size {
-            for j in 0..half_size {
-                matrix[i][j] *= 4.0;
-                matrix[i][j + half_size] = matrix[i][j] + 2.0;
-                matrix[i + half_size][j] = matrix[i][j] + 3.0;
-                matrix[i + half_size][j + half_size] = matrix[i][j] + 1.0;
-            }
-        }
-    }
-
-    // Normalisation
-    matrix.iter_mut()
-        .flat_map(|row| row.iter_mut())
-        .for_each(|val| *val /= (order * order) as f64);
-
-    matrix
-}
-
-fn apply_bayer_dithering(img_rgb: &image::RgbImage) -> image::RgbImage {
-    let (width, height) = img_rgb.dimensions();
-    let mut img_out = image::ImageBuffer::new(width, height);
-    
-    // Générer une matrice de Bayer 8x8
-    let bayer_matrix = generate_bayer_matrix(8);
-    
-    for (x, y, pixel) in img_rgb.enumerate_pixels() {
-        let luma = pixel.to_luma().0[0] as f64 / 255.0;
-        let seuil = bayer_matrix[y as usize % 8][x as usize % 8];
-        
-        let output_pixel = if luma > seuil { WHITE } else { BLACK };
-        img_out.put_pixel(x, y, output_pixel);
-    }
-    
-    img_out
-}
-
-fn error_diffusion_dithering(img_gray: &image::GrayImage) -> image::GrayImage {
-    let (width, height) = img_gray.dimensions();
-    let mut img_out = image::ImageBuffer::new(width, height);
-    let mut error = vec![vec![0.0; width as usize]; height as usize];
-    
-    for y in 0..height {
-        for x in 0..width {
-            let pixel = img_gray.get_pixel(x, y).0[0] as f64;
-            let new_pixel = if pixel + error[y as usize][x as usize] > 127.0 { 255 } else { 0 };
-            let quant_error = pixel - new_pixel as f64;
-            img_out.put_pixel(x, y, image::Luma([new_pixel as u8]));
-            
-            if x + 1 < width {
-                error[y as usize][x as usize + 1] += quant_error * 7.0 / 16.0;
-            }
-            if y + 1 < height {
-                error[y as usize + 1][x as usize] += quant_error * 5.0 / 16.0;
-                if x > 0 {
-                    error[y as usize + 1][x as usize - 1] += quant_error * 3.0 / 16.0;
-                }
-                if x + 1 < width {
-                    error[y as usize + 1][x as usize + 1] += quant_error * 1.0 / 16.0;
-                }
-            }
-        }
-    }
-    
-    img_out
 }
 
 fn main() -> Result<(), ImageError>{
@@ -250,26 +175,4 @@ fn main() -> Result<(), ImageError>{
     img_out.save(path_out)?;
 
     Ok(())
-}
-
-fn string_to_color(couleur: &str) -> image::Rgb<u8> {
-    match couleur {
-        "noir" => BLACK,
-        "blanc" => WHITE,
-        "gris" => GREY,
-        "rouge" => RED,
-        "vert" => GREEN,
-        "bleu" => BLUE,
-        "jaune" => YELLOW,
-        "cyan" => CYAN,
-        "magenta" => MAGENTA,
-        _ => BLACK
-    }
-}
-
-fn color_distance(color1: image::Rgb<u8>, color2: image::Rgb<u8>) -> f64 {
-    let r_diff = (color1[0] as i32 - color2[0] as i32).pow(2);
-    let g_diff = (color1[1] as i32 - color2[1] as i32).pow(2);
-    let b_diff = (color1[2] as i32 - color2[2] as i32).pow(2);
-    ((r_diff + g_diff + b_diff) as f64).sqrt()
 }
