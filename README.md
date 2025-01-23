@@ -44,6 +44,41 @@ Formule:
 
 Si on donne une palette vide à notre application, on ne peut pas appliquer de dithering car on ne peut pas trouver la couleur la plus proche de chaque pixel. On peut donc afficher un message d'erreur à l'utilisateur pour lui dire que la palette est vide et qu'il doit la remplir pour pouvoir appliquer le dithering. Minimum 2 couleurs sont demandé.
 
+Question 13)
+
+Je n'ai mis que la premiere valeur de chaque carré de la matrice
+
+$$
+B3= \frac{1}{64}.
+\begin{pmatrix}
+0 & 2 \\
+3 & 1 
+\end{pmatrix}
+$$
+
+Question 14)
+
+Pour représenter une matrice de Bayer, on peut utiliser :
+
+
+Vecteur de vecteurs
+Matrice numpy/ndarray (pour Python/Rust)
+
+Pour la création récursive d'une matrice de Bayer d'ordre arbitraire :
+
+Contrainte : l'ordre doit être une puissance de 2
+Faire un algorithme récursif qui :
+
+Initialise matrice de taille 1x1
+À chaque itération, multiplier la sous-matrice par 4
+Remplir les bloc avec des valeurs décalées (0, 2, 3, 1)
+Puis normaliser
+
+
+
+
+
+
 ### Question 21)
 
 ```

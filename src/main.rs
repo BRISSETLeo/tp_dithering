@@ -24,7 +24,9 @@ struct DitherArgs {
 enum Mode {
     Seuil(OptsSeuil),
     Palette(OptsPalette),
-    Tramage(OptsTramage)
+    Tramage(OptsTramage),
+    TramageBayer(OptsTramageBayer),
+    DiffusionErreur(OptsDiffusionErreur)
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
@@ -57,6 +59,18 @@ struct OptsPalette {
 /// Rendu de lâimage par tramage
 struct OptsTramage {
 }
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="tramage-bayer")]
+/// Rendu de lâimage par tramage avec matrice de Bayer
+struct OptsTramageBayer {
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="diffusion-erreur")]
+/// Rendu de lâimage par diffusion dâerreur
+struct OptsDiffusionErreur {
+}
  
 const WHITE: image::Rgb<u8> = image::Rgb([255, 255, 255]);
 const GREY: image::Rgb<u8> = image::Rgb([127, 127, 127]);
@@ -67,6 +81,80 @@ const GREEN: image::Rgb<u8> = image::Rgb([0, 255, 0]);
 const YELLOW: image::Rgb<u8> = image::Rgb([255, 255, 0]);
 const MAGENTA: image::Rgb<u8> = image::Rgb([255, 0, 255]);
 const CYAN: image::Rgb<u8> = image::Rgb([0, 255, 255]);
+
+fn generate_bayer_matrix(order: usize) -> Vec<Vec<f64>> {
+    let mut matrix = vec![vec![0.0; order]; order];
+    matrix[0][0] = 0.0;
+
+    for n in 1..=(order as f64).log2() as usize {
+        let current_size = 2_usize.pow(n as u32);
+        let half_size = current_size / 2;
+
+        for i in 0..half_size {
+            for j in 0..half_size {
+                matrix[i][j] *= 4.0;
+                matrix[i][j + half_size] = matrix[i][j] + 2.0;
+                matrix[i + half_size][j] = matrix[i][j] + 3.0;
+                matrix[i + half_size][j + half_size] = matrix[i][j] + 1.0;
+            }
+        }
+    }
+
+    // Normalisation
+    matrix.iter_mut()
+        .flat_map(|row| row.iter_mut())
+        .for_each(|val| *val /= (order * order) as f64);
+
+    matrix
+}
+
+fn apply_bayer_dithering(img_rgb: &image::RgbImage) -> image::RgbImage {
+    let (width, height) = img_rgb.dimensions();
+    let mut img_out = image::ImageBuffer::new(width, height);
+    
+    // Générer une matrice de Bayer 8x8
+    let bayer_matrix = generate_bayer_matrix(8);
+    
+    for (x, y, pixel) in img_rgb.enumerate_pixels() {
+        let luma = pixel.to_luma().0[0] as f64 / 255.0;
+        let seuil = bayer_matrix[y as usize % 8][x as usize % 8];
+        
+        let output_pixel = if luma > seuil { WHITE } else { BLACK };
+        img_out.put_pixel(x, y, output_pixel);
+    }
+    
+    img_out
+}
+
+fn error_diffusion_dithering(img_gray: &image::GrayImage) -> image::GrayImage {
+    let (width, height) = img_gray.dimensions();
+    let mut img_out = image::ImageBuffer::new(width, height);
+    let mut error = vec![vec![0.0; width as usize]; height as usize];
+    
+    for y in 0..height {
+        for x in 0..width {
+            let pixel = img_gray.get_pixel(x, y).0[0] as f64;
+            let new_pixel = if pixel + error[y as usize][x as usize] > 127.0 { 255 } else { 0 };
+            let quant_error = pixel - new_pixel as f64;
+            img_out.put_pixel(x, y, image::Luma([new_pixel as u8]));
+            
+            if x + 1 < width {
+                error[y as usize][x as usize + 1] += quant_error * 7.0 / 16.0;
+            }
+            if y + 1 < height {
+                error[y as usize + 1][x as usize] += quant_error * 5.0 / 16.0;
+                if x > 0 {
+                    error[y as usize + 1][x as usize - 1] += quant_error * 3.0 / 16.0;
+                }
+                if x + 1 < width {
+                    error[y as usize + 1][x as usize + 1] += quant_error * 1.0 / 16.0;
+                }
+            }
+        }
+    }
+    
+    img_out
+}
 
 fn main() -> Result<(), ImageError>{
     let args: DitherArgs = argh::from_env();
@@ -137,8 +225,23 @@ fn main() -> Result<(), ImageError>{
                     img_out.put_pixel(x, y, BLACK);
                 }
             }
+        },
+        Mode::TramageBayer(_) => {
+            img_out = apply_bayer_dithering(&img_rgb);
+        },
+        Mode::DiffusionErreur(_) => {
+            // Convertir l'image en niveaux de gris
+            let img_gray = img.to_luma8();
+            
+            // Appliquer l'algorithme de diffusion d'erreur
+            let img_dithered = error_diffusion_dithering(&img_gray);
+            
+            // Copier les pixels dans l'image de sortie (en RGB)
+            for (x, y, pixel) in img_dithered.enumerate_pixels() {
+                let color = if pixel[0] == 255 { WHITE } else { BLACK };
+                img_out.put_pixel(x, y, color);
+            }
         }
-        
         
     }
     
